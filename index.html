@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سبورت ستريم | منصة IPTV الرياضية</title>
+    <title>المُهندس لايف | بث مباشر</title>
+    <!-- أيقونة الموقع في التبويب -->
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/917/917560.png" type="image/png">
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
     <meta name="referrer" content="no-referrer">
     
@@ -18,6 +20,7 @@
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@700&display=swap');
 
         body {
             font-family: 'Cairo', sans-serif;
@@ -53,15 +56,25 @@
             100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
         
-        /* تأثيرات خاصة للمدير */
         .admin-controls { display: none; }
         .is-admin .admin-controls { display: block; }
         
-        /* تنسيق الـ iframe */
         #embedContainer iframe {
             width: 100%;
             height: 100%;
             border: none;
+        }
+
+        .admin-input {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            color: white;
+            transition: all 0.3s;
+        }
+        .admin-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
         }
     </style>
 </head>
@@ -75,96 +88,152 @@
     <!-- القائمة العلوية -->
     <nav class="bg-slate-800/90 backdrop-blur-md sticky top-0 z-50 border-b border-slate-700 shadow-lg">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.reload()">
-                <div class="w-10 h-10 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                    <i class="fas fa-play"></i>
-                </div>
-                <h1 class="text-2xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300 hidden sm:block">
-                    سبورت <span class="text-white">ستريم</span>
+            <div class="flex items-center gap-2 cursor-pointer" onclick="window.location.reload()">
+                <!-- شعار الموقع -->
+                <img src="https://cdn-icons-png.flaticon.com/512/917/917560.png" alt="Logo" class="w-12 h-12 object-contain drop-shadow-lg hover:scale-110 transition-transform duration-300">
+                
+                <h1 class="text-xl md:text-3xl font-black tracking-tight" style="font-family: 'Reem Kufi', sans-serif;">
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-300 to-yellow-600 drop-shadow-md">المُهندس</span>
+                    <span class="text-white drop-shadow-lg">لايف</span>
                 </h1>
             </div>
 
             <div class="relative w-full max-w-md mx-4 hidden md:block">
                 <input type="text" id="searchInput" placeholder="ابحث عن قناة..." 
-                       class="w-full bg-slate-700/50 text-white border border-slate-600 rounded-full py-2 px-10 focus:outline-none focus:border-blue-500 focus:bg-slate-700 transition">
+                       class="w-full bg-slate-700/50 text-white border border-slate-600 rounded-full py-2 px-10 focus:outline-none focus:border-yellow-500 focus:bg-slate-700 transition">
                 <i class="fas fa-search absolute right-3 top-3 text-slate-400"></i>
             </div>
 
-            <div class="flex items-center gap-4">
-                <button onclick="showPage('favorites')" class="text-slate-300 hover:text-red-500 transition relative" title="المفضلة">
+            <div class="flex items-center gap-3">
+                <button onclick="showPage('favorites')" class="text-slate-300 hover:text-red-500 transition relative p-2" title="المفضلة">
                     <i class="fas fa-heart text-xl"></i>
-                    <span id="favCount" class="absolute -top-2 -left-2 bg-red-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center hidden">0</span>
+                    <span id="favCount" class="absolute top-0 right-0 bg-red-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center hidden">0</span>
                 </button>
-                <button id="adminLoginBtn" class="text-slate-400 hover:text-white transition" title="دخول المدير">
-                    <i class="fas fa-user-shield text-xl"></i>
+                <button id="adminLoginBtn" class="text-yellow-500 hover:text-yellow-400 transition bg-slate-800/80 p-2 rounded-full border border-yellow-600/30" title="لوحة التحكم">
+                    <i class="fas fa-user-cog text-lg"></i>
                 </button>
             </div>
         </div>
         <div class="md:hidden px-4 py-2 border-t border-slate-700">
-            <input type="text" id="searchInputMobile" placeholder="بحث..." 
-                   class="w-full bg-slate-700 text-white text-sm rounded-lg py-2 px-3 focus:outline-none">
+            <input type="text" id="searchInputMobile" placeholder="ابحث عن القنوات..." 
+                   class="w-full bg-slate-700 text-white text-sm rounded-lg py-2 px-3 focus:outline-none focus:border-yellow-500">
         </div>
     </nav>
 
     <!-- المحتوى الرئيسي -->
     <main id="mainContent" class="flex-grow container mx-auto px-4 py-6 relative">
         
-        <!-- لوحة تحكم المدير (تظهر فقط بعد تسجيل الدخول) -->
-        <div id="adminPanel" class="hidden mb-8 bg-slate-800 border-2 border-yellow-600/50 rounded-xl p-6 shadow-2xl relative overflow-hidden">
-            <div class="absolute top-0 left-0 bg-yellow-600 text-black text-xs font-bold px-3 py-1 rounded-br-lg">Admin Mode</div>
-            <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-                <i class="fas fa-cogs text-yellow-500"></i> إدارة المحتوى
-            </h2>
+        <!-- لوحة تحكم المدير -->
+        <div id="adminPanel" class="hidden mb-10 bg-slate-800/90 border border-slate-700 rounded-2xl p-6 shadow-2xl relative backdrop-blur-sm overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-500 via-red-500 to-blue-500"></div>
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-tachometer-alt text-yellow-500"></i> لوحة التحكم
+                </h2>
+                <div class="flex gap-2">
+                    <span class="bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-xs font-bold border border-yellow-500/30">Admin Active</span>
+                    <button onclick="logoutAdmin()" class="bg-red-600/20 text-red-400 px-3 py-1 rounded-full text-xs font-bold border border-red-600/30 hover:bg-red-600 hover:text-white transition">خروج</button>
+                </div>
+            </div>
 
-            <div class="grid md:grid-cols-2 gap-8">
-                <!-- إضافة قناة يدوية -->
-                <div>
-                    <h3 class="text-lg font-bold text-slate-300 mb-3 border-b border-slate-700 pb-2">إضافة قناة واحدة</h3>
-                    <form id="addChannelForm" class="space-y-3">
-                        <input type="text" id="adminChName" placeholder="اسم القناة" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-sm">
-                        <textarea id="adminChUrl" rows="2" placeholder="رابط البث (m3u8) أو كود التضمين (iframe)" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-sm font-mono"></textarea>
-                        <div class="flex gap-2">
-                            <input type="text" id="adminChCat" placeholder="التصنيف (مثال: football)" class="w-1/2 bg-slate-900 border border-slate-600 rounded p-2 text-white text-sm">
-                            <input type="text" id="adminChLogo" placeholder="رابط الشعار (اختياري)" class="w-1/2 bg-slate-900 border border-slate-600 rounded p-2 text-white text-sm">
+            <div class="grid lg:grid-cols-3 gap-8">
+                <!-- قسم إضافة قناة -->
+                <div class="lg:col-span-1 bg-slate-900/50 p-5 rounded-xl border border-slate-700/50">
+                    <h3 class="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2 border-b border-slate-700 pb-2">
+                        <i class="fas fa-plus-circle text-green-500"></i> نشر قناة جديدة
+                    </h3>
+                    <form id="addChannelForm" class="space-y-4">
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">اسم القناة</label>
+                            <input type="text" id="adminChName" placeholder="مثال: Bein Sport 1" class="admin-input w-full rounded-lg p-2.5 text-sm">
                         </div>
-                        <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded transition">
-                            <i class="fas fa-plus"></i> نشر القناة
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">رابط البث / التضمين</label>
+                            <textarea id="adminChUrl" rows="2" placeholder="http://... أو <iframe..." class="admin-input w-full rounded-lg p-2.5 text-sm font-mono"></textarea>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1">التصنيف</label>
+                                <select id="adminChCat" class="admin-input w-full rounded-lg p-2.5 text-sm">
+                                    <option value="football">كرة قدم</option>
+                                    <option value="BEIN">BeIN Sports</option>
+                                    <option value="SSC">SSC Sports</option>
+                                    <option value="news">أخبار</option>
+                                    <option value="general">عام</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1">رابط الشعار</label>
+                                <input type="text" id="adminChLogo" placeholder="http://image.png" class="admin-input w-full rounded-lg p-2.5 text-sm">
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 rounded-lg transition shadow-lg flex items-center justify-center gap-2">
+                            <i class="fas fa-paper-plane"></i> نشر الآن
                         </button>
                     </form>
                 </div>
 
-                <!-- استيراد جماعي -->
-                <div>
-                    <h3 class="text-lg font-bold text-slate-300 mb-3 border-b border-slate-700 pb-2">استيراد من ملف M3U</h3>
-                    <textarea id="adminM3uInput" rows="3" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-xs font-mono mb-2" placeholder="الصق محتوى M3U هنا..."></textarea>
-                    <div class="flex gap-2">
-                        <button onclick="previewM3u()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded transition text-sm">
-                            <i class="fas fa-eye"></i> معاينة واختيار
-                        </button>
-                        <button onclick="deleteAllChannels()" class="bg-red-900 hover:bg-red-700 text-white font-bold px-4 rounded transition text-sm" title="حذف كل القنوات من الموقع">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
+                <!-- قسم الاستيراد والإجراءات -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700/50">
+                        <h3 class="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2 border-b border-slate-700 pb-2">
+                            <i class="fas fa-file-import text-blue-500"></i> استيراد جماعي (M3U)
+                        </h3>
+                        
+                        <!-- زر رفع الملف -->
+                        <div class="mb-4">
+                            <label class="flex flex-col items-center justify-center w-full h-16 border-2 border-slate-600 border-dashed rounded-lg cursor-pointer bg-slate-800 hover:bg-slate-700 hover:border-blue-500 transition">
+                                <div class="flex items-center gap-2 text-slate-400">
+                                    <i class="fas fa-cloud-upload-alt text-xl"></i>
+                                    <span class="text-sm font-medium">اضغط لرفع ملف M3U من الجهاز</span>
+                                </div>
+                                <input type="file" id="adminFileInput" class="hidden" accept=".m3u,.m3u8,.txt" onchange="handleAdminFileUpload(event)" />
+                            </label>
+                        </div>
+
+                        <div class="flex gap-3 mb-3">
+                            <textarea id="adminM3uInput" rows="2" class="admin-input flex-1 rounded-lg p-2.5 text-xs font-mono" placeholder="أو الصق المحتوى هنا..."></textarea>
+                            <div class="flex flex-col gap-2">
+                                <button onclick="previewM3u()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg transition text-sm h-full whitespace-nowrap">
+                                    <i class="fas fa-search"></i> فحص
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="previewArea" class="hidden bg-slate-950 p-4 rounded-lg border border-slate-800">
+                            <div class="flex justify-between items-center mb-3">
+                                <h4 class="text-white font-bold text-sm">القنوات المستخرجة:</h4>
+                                <button id="publishBtn" onclick="publishSelected()" class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs px-4 py-2 rounded-lg font-bold transition flex items-center gap-2">
+                                    <span>نشر المحدد</span>
+                                </button>
+                            </div>
+                            <div id="previewList" class="max-h-60 overflow-y-auto space-y-2 pr-2 custom-scroll"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 text-center">
+                            <span class="block text-slate-400 text-xs mb-1">عدد القنوات المنشورة</span>
+                            <span id="totalChannelsCount" class="text-3xl font-black text-white">0</span>
+                        </div>
+                        <div class="bg-red-900/10 p-4 rounded-xl border border-red-900/30 flex items-center justify-center">
+                            <button onclick="deleteAllChannels()" class="text-red-400 hover:text-red-200 transition flex flex-col items-center gap-1 group">
+                                <i class="fas fa-trash-alt text-2xl group-hover:scale-110 transition"></i>
+                                <span class="text-xs font-bold">حذف جميع القنوات</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- منطقة المعاينة (مخفية) -->
-            <div id="previewArea" class="hidden mt-6 bg-slate-900 p-4 rounded-lg border border-slate-700">
-                <h4 class="text-white font-bold mb-2">اختر القنوات للنشر:</h4>
-                <div id="previewList" class="max-h-60 overflow-y-auto space-y-2 mb-4 pr-2"></div>
-                <button onclick="publishSelected()" class="w-full bg-yellow-600 hover:bg-yellow-700 text-black font-bold py-2 rounded">
-                    نشر القنوات المختارة للموقع
-                </button>
             </div>
         </div>
 
         <!-- الصفحة الرئيسية للقنوات -->
         <div id="homePage">
             <div class="flex flex-wrap gap-2 mb-8 justify-center overflow-x-auto pb-2">
-                <button onclick="filterCategory('all')" class="category-btn active px-6 py-2 rounded-full bg-blue-600 text-white font-bold shadow-lg transition hover:bg-blue-700">الكل</button>
+                <button onclick="filterCategory('all')" class="category-btn active px-6 py-2 rounded-full bg-yellow-600 text-white font-bold shadow-lg transition hover:bg-yellow-700">الكل</button>
                 <button onclick="filterCategory('football')" class="category-btn px-6 py-2 rounded-full bg-slate-700 text-slate-300 font-semibold hover:bg-slate-600 transition border border-slate-600">كرة قدم</button>
-                <button onclick="filterCategory('BEIN')" class="category-btn px-6 py-2 rounded-full bg-slate-700 text-slate-300 font-semibold hover:bg-slate-600 transition border border-slate-600">BeIN</button>
-                <button onclick="filterCategory('SSC')" class="category-btn px-6 py-2 rounded-full bg-slate-700 text-slate-300 font-semibold hover:bg-slate-600 transition border border-slate-600">SSC</button>
+                <button onclick="filterCategory('BEIN')" class="category-btn px-6 py-2 rounded-full bg-purple-900/50 text-purple-300 font-semibold hover:bg-purple-800 transition border border-purple-700">BeIN</button>
+                <button onclick="filterCategory('SSC')" class="category-btn px-6 py-2 rounded-full bg-orange-900/50 text-orange-300 font-semibold hover:bg-orange-800 transition border border-orange-700">SSC</button>
             </div>
 
             <div id="loadingChannels" class="text-center py-10">
@@ -225,26 +294,69 @@
         <div id="favoritesPage" class="hidden">
             <h2 class="text-2xl font-bold mb-6 text-red-400 border-r-4 border-red-500 pr-4">القنوات المفضلة</h2>
             <div id="favGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
-            <div id="noFavs" class="hidden text-center py-20 text-slate-500">لا توجد قنوات مفضلة</div>
+            <div id="noFavs" class="hidden text-center py-20 text-slate-500">
+                <i class="far fa-heart text-6xl text-slate-700 mb-4 block mx-auto"></i>
+                لا توجد قنوات مفضلة حالياً
+            </div>
         </div>
 
     </main>
 
+    <footer class="bg-slate-900 border-t border-slate-800 py-6 mt-8">
+        <div class="container mx-auto px-4 text-center text-slate-600 text-xs">
+            <p>جميع الحقوق محفوظة &copy; 2026 <span class="text-yellow-600 font-bold">المُهندس لايف</span></p>
+        </div>
+    </footer>
+
     <!-- نافذة تسجيل دخول المدير -->
-    <div id="loginModal" class="fixed inset-0 bg-black/80 z-[60] hidden flex items-center justify-center">
-        <div class="bg-slate-800 p-8 rounded-xl border border-slate-600 shadow-2xl w-full max-w-sm">
-            <h3 class="text-xl font-bold text-white mb-4 text-center">دخول المدير</h3>
-            <input type="password" id="adminPassword" placeholder="كلمة المرور" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white mb-4 focus:border-blue-500 outline-none">
-            <div class="flex gap-2">
-                <button onclick="checkAdminLogin()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg">دخول</button>
-                <button onclick="document.getElementById('loginModal').classList.add('hidden')" class="bg-slate-700 hover:bg-slate-600 text-white px-4 rounded-lg">إلغاء</button>
+    <div id="loginModal" class="fixed inset-0 bg-black/80 z-[60] hidden flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-slate-800 p-8 rounded-2xl border border-slate-600 shadow-2xl w-full max-w-sm transform transition-all scale-100">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-blue-500">
+                    <i class="fas fa-user-lock text-3xl text-blue-400"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white">دخول المدير</h3>
+                <p class="text-slate-400 text-xs mt-1">يرجى إدخال رمز المرور للمتابعة</p>
             </div>
+            <input type="password" id="adminPassword" placeholder="رمز الدخول..." class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white mb-4 focus:border-blue-500 outline-none text-center tracking-widest">
+            <div class="flex gap-2">
+                <button onclick="checkAdminLogin()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition">دخول</button>
+                <button onclick="document.getElementById('loginModal').classList.add('hidden')" class="bg-slate-700 hover:bg-slate-600 text-white px-4 rounded-lg transition">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة تعديل القناة -->
+    <div id="editModal" class="fixed inset-0 bg-black/80 z-[70] hidden flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-slate-800 p-6 rounded-2xl border border-yellow-600 shadow-2xl w-full max-w-md">
+            <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <i class="fas fa-edit text-yellow-500"></i> تعديل القناة
+            </h3>
+            <form id="editChannelForm" class="space-y-4">
+                <input type="hidden" id="editDocId">
+                <div>
+                    <label class="text-xs text-slate-400">الاسم</label>
+                    <input type="text" id="editName" class="admin-input w-full rounded-lg p-2 text-sm">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400">الرابط / الكود</label>
+                    <textarea id="editUrl" rows="3" class="admin-input w-full rounded-lg p-2 text-sm font-mono"></textarea>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400">التصنيف</label>
+                    <input type="text" id="editCat" class="admin-input w-full rounded-lg p-2 text-sm">
+                </div>
+                <div class="flex gap-2 mt-4">
+                    <button type="submit" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg transition">حفظ التعديلات</button>
+                    <button type="button" onclick="document.getElementById('editModal').classList.add('hidden')" class="bg-slate-700 hover:bg-slate-600 text-white px-4 rounded-lg">إلغاء</button>
+                </div>
+            </form>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         const firebaseConfig = {
@@ -270,15 +382,21 @@
             try {
                 await signInAnonymously(auth);
                 const q = collection(db, 'artifacts', appId, 'public', 'data', 'channels');
+                
                 onSnapshot(q, (snapshot) => {
                     window.allChannels = snapshot.docs.map(doc => ({
                         firestoreId: doc.id,
                         ...doc.data()
                     }));
+                    window.allChannels.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                    
+                    if(document.getElementById('totalChannelsCount'))
+                        document.getElementById('totalChannelsCount').innerText = window.allChannels.length;
+                        
                     renderChannelsGlobal(window.allChannels);
                     document.getElementById('loadingChannels').classList.add('hidden');
                 }, (error) => {
-                    console.error("Error fetching channels:", error);
+                    console.error("Error:", error);
                     document.getElementById('loadingChannels').innerHTML = '<p class="text-red-500">حدث خطأ في الاتصال</p>';
                 });
             } catch (error) {
@@ -295,11 +413,32 @@
                 document.getElementById('loginModal').classList.add('hidden');
                 document.getElementById('adminPanel').classList.remove('hidden');
                 document.body.classList.add('is-admin');
-                alert("تم تسجيل الدخول كمدير.");
-                renderChannelsGlobal(window.allChannels);
+                renderChannelsGlobal(window.allChannels); 
             } else {
-                alert("كلمة المرور غير صحيحة!");
+                alert("رمز الدخول غير صحيح");
             }
+        }
+
+        window.logoutAdmin = function() {
+            window.isAdmin = false;
+            document.body.classList.remove('is-admin');
+            document.getElementById('adminPanel').classList.add('hidden');
+            renderChannelsGlobal(window.allChannels);
+        }
+
+        // دالة رفع الملف للمدير
+        window.handleAdminFileUpload = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                document.getElementById('adminM3uInput').value = content;
+                alert('تم قراءة الملف بنجاح! اضغط "فحص" للمعاينة.');
+            };
+            reader.readAsText(file);
+            event.target.value = ''; // لإعادة الاستخدام
         }
 
         document.getElementById('addChannelForm').addEventListener('submit', async (e) => {
@@ -308,52 +447,77 @@
 
             const name = document.getElementById('adminChName').value;
             const urlRaw = document.getElementById('adminChUrl').value;
-            const category = document.getElementById('adminChCat').value || 'عام';
-            const logo = document.getElementById('adminChLogo').value || '';
+            const category = document.getElementById('adminChCat').value;
+            const logo = document.getElementById('adminChLogo').value;
 
             if (!name || !urlRaw) { alert('الاسم والرابط مطلوبان'); return; }
 
-            // تحديد نوع القناة (iframe أو stream)
             const isIframe = urlRaw.trim().startsWith('<iframe') || urlRaw.includes('embed');
             const type = isIframe ? 'iframe' : 'stream';
 
             try {
                 await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'channels'), {
                     id: 'ch-' + Date.now(),
-                    name, 
-                    url: urlRaw, 
-                    type,
-                    category, 
-                    logo,
-                    createdAt: Date.now()
+                    name, url: urlRaw, type, category, logo, createdAt: Date.now()
                 });
-                alert('تم نشر القناة بنجاح!');
+                alert('تم النشر!');
                 e.target.reset();
-            } catch (err) {
-                console.error(err);
-                alert('فشل الإضافة: ' + err.message);
-            }
+            } catch (err) { alert('خطأ: ' + err.message); }
         });
 
         window.deleteChannelFromDb = async function(firestoreId) {
-            if (!window.isAdmin || !confirm('هل أنت متأكد من حذف هذه القناة نهائياً لجميع الزوار؟')) return;
+            if (!window.isAdmin || !confirm('تأكيد الحذف؟')) return;
             try {
                 await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'channels', firestoreId));
-            } catch (err) { alert('فشل الحذف: ' + err.message); }
+            } catch (err) { alert('خطأ: ' + err.message); }
         }
 
+        window.openEditModal = function(id) {
+            const channel = window.allChannels.find(ch => ch.id === id);
+            if (!channel) return;
+
+            document.getElementById('editDocId').value = channel.firestoreId;
+            document.getElementById('editName').value = channel.name;
+            document.getElementById('editUrl').value = channel.url;
+            document.getElementById('editCat').value = channel.category;
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        document.getElementById('editChannelForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const docId = document.getElementById('editDocId').value;
+            const name = document.getElementById('editName').value;
+            const urlRaw = document.getElementById('editUrl').value;
+            const category = document.getElementById('editCat').value;
+            const isIframe = urlRaw.trim().startsWith('<iframe') || urlRaw.includes('embed');
+            const type = isIframe ? 'iframe' : 'stream';
+
+            try {
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'channels', docId), {
+                    name, url: urlRaw, type, category
+                });
+                document.getElementById('editModal').classList.add('hidden');
+                alert('تم التعديل بنجاح');
+            } catch (err) {
+                alert('فشل التعديل: ' + err.message);
+            }
+        });
+
         window.deleteAllChannels = async function() {
-            if (!window.isAdmin || !confirm('تحذير خطير: سيتم مسح جميع القنوات من الموقع! هل أنت متأكد؟')) return;
+            if (!window.isAdmin || !confirm('تحذير: سيتم مسح كل شيء!')) return;
             const batchPromises = window.allChannels.map(ch => 
                 deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'channels', ch.firestoreId))
             );
             await Promise.all(batchPromises);
-            alert('تم تنظيف الموقع.');
+            alert('تم المسح.');
         }
 
         window.previewM3u = function() {
             const input = document.getElementById('adminM3uInput').value;
-            if (!input.includes('#EXTM3U') && !input.includes('#EXTINF')) { alert('صيغة غير صحيحة'); return; }
+            // فحص مبسط للسماح بالروابط المباشرة أيضاً
+            if (!input.includes('#EXTM3U') && !input.includes('#EXTINF') && input.length < 10) { 
+                alert('المحتوى قصير جداً أو غير صالح'); return; 
+            }
 
             const lines = input.split('\n');
             window.previewChannels = [];
@@ -365,34 +529,38 @@
                     const nameParts = line.split(',');
                     const name = nameParts[nameParts.length - 1].trim();
                     const logoMatch = line.match(/tvg-logo="([^"]*)"/);
-                    const groupMatch = line.match(/group-title="([^"]*)"/);
-                    let cat = groupMatch ? groupMatch[1] : 'عام';
+                    let cat = 'عام';
                     if (name.toUpperCase().includes('SPORT')) cat = 'football';
                     currentInfo = { name, category: cat, logo: logoMatch ? logoMatch[1] : '' };
                 } else if (line.length > 5 && !line.startsWith('#')) {
-                    if (currentInfo.name) {
-                        window.previewChannels.push({
-                            id: 'temp-' + Math.random(),
-                            url: line,
-                            type: 'stream', // M3U عادة روابط مباشرة
-                            ...currentInfo
-                        });
-                        currentInfo = {};
-                    }
+                    // إذا كان رابط
+                    // اسم افتراضي إذا لم يكن موجوداً
+                    const name = currentInfo.name || `قناة مستوردة ${window.previewChannels.length + 1}`;
+                    const category = currentInfo.category || 'عام';
+                    const logo = currentInfo.logo || '';
+                    
+                    window.previewChannels.push({
+                        id: 'temp-' + Math.random(),
+                        url: line,
+                        type: 'stream',
+                        name, category, logo
+                    });
+                    currentInfo = {}; // تصفير
                 }
             }
 
             const list = document.getElementById('previewList');
             list.innerHTML = '';
-            if (window.previewChannels.length === 0) { alert('لم يتم العثور على قنوات'); return; }
+            if (window.previewChannels.length === 0) { alert('لم يتم العثور على قنوات صالحة'); return; }
 
-            window.previewChannels.slice(0, 200).forEach((ch, idx) => {
+            // عرض أول 500 قناة للمعاينة
+            window.previewChannels.slice(0, 500).forEach((ch, idx) => {
                 const div = document.createElement('div');
-                div.className = "flex items-center gap-2 bg-slate-800 p-2 rounded border border-slate-700";
+                div.className = "flex items-center gap-2 bg-slate-800 p-2 rounded border border-slate-700 mb-1";
                 div.innerHTML = `
                     <input type="checkbox" id="chk-${idx}" class="ch-select w-4 h-4" checked>
-                    <label for="chk-${idx}" class="text-white text-sm truncate flex-1">${ch.name}</label>
-                    <span class="text-xs text-slate-400">${ch.category}</span>
+                    <label for="chk-${idx}" class="text-white text-xs truncate flex-1">${ch.name}</label>
+                    <span class="text-[10px] text-slate-400 bg-slate-700 px-1 rounded">${ch.category}</span>
                 `;
                 list.appendChild(div);
             });
@@ -400,27 +568,46 @@
         }
 
         window.publishSelected = async function() {
+            const btn = document.getElementById('publishBtn');
             const checkboxes = document.querySelectorAll('.ch-select:checked');
             if (checkboxes.length === 0) { alert('اختر قناة واحدة على الأقل'); return; }
-            const count = checkboxes.length;
-            if (!confirm(`سيتم نشر ${count} قناة للموقع. هل أنت متأكد؟`)) return;
+            
+            if (!confirm(`سيتم نشر ${checkboxes.length} قناة. هل أنت متأكد؟`)) return;
+
+            // تغيير حالة الزر
+            const originalText = btn.innerText;
+            btn.innerText = "جاري النشر...";
+            btn.disabled = true;
 
             let added = 0;
             for (let chk of checkboxes) {
                 const idx = parseInt(chk.id.split('-')[1]);
                 const ch = window.previewChannels[idx];
+                
                 try {
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'channels'), {
-                        ...ch,
+                    // تجهيز الكائن وتنظيف البيانات قبل الإرسال لتجنب أخطاء undefined
+                    const cleanCh = {
+                        name: ch.name || "قناة",
+                        url: ch.url,
+                        type: ch.type || "stream",
+                        category: ch.category || "عام",
+                        logo: ch.logo || "",
                         id: 'pub-' + Date.now() + Math.random(),
                         createdAt: Date.now()
-                    });
+                    };
+                    
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'channels'), cleanCh);
                     added++;
-                } catch (e) { console.error(e); }
+                } catch (e) { console.error("Error adding doc: ", e); }
             }
+            
             alert(`تم نشر ${added} قناة بنجاح!`);
             document.getElementById('previewArea').classList.add('hidden');
             document.getElementById('adminM3uInput').value = '';
+            
+            // إعادة حالة الزر
+            btn.innerText = originalText;
+            btn.disabled = false;
         }
     </script>
 
@@ -445,26 +632,42 @@
                 
                 const card = document.createElement('div');
                 card.className = 'channel-card relative bg-slate-800 rounded-xl overflow-hidden cursor-pointer border border-slate-700 group';
-                card.onclick = (e) => { if(!e.target.closest('button')) playChannel(channel.id); };
+                card.onclick = (e) => { 
+                    if(!e.target.closest('button')) playChannel(channel.id); 
+                };
 
-                const deleteBtn = window.isAdmin ? 
-                    `<button onclick="deleteChannelFromDb('${channel.firestoreId}')" class="absolute top-2 left-2 z-10 bg-red-600 text-white w-6 h-6 rounded flex items-center justify-center hover:bg-red-700"><i class="fas fa-times"></i></button>` : '';
+                const adminControls = window.isAdmin ? `
+                    <div class="absolute top-2 left-2 z-20 flex gap-1">
+                        <button onclick="openEditModal('${channel.id}')" class="bg-yellow-600 hover:bg-yellow-500 text-white w-7 h-7 rounded flex items-center justify-center shadow-lg" title="تعديل">
+                            <i class="fas fa-pen text-xs"></i>
+                        </button>
+                        <button onclick="deleteChannelFromDb('${channel.firestoreId}')" class="bg-red-600 hover:bg-red-500 text-white w-7 h-7 rounded flex items-center justify-center shadow-lg" title="حذف">
+                            <i class="fas fa-trash text-xs"></i>
+                        </button>
+                    </div>
+                ` : '';
+
+                const logoHtml = channel.logo ? 
+                    `<img src="${channel.logo}" class="h-16 w-16 object-contain drop-shadow-lg" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"> <i class="${iconClass} text-5xl text-slate-500 group-hover:text-blue-500 transition hidden"></i>` :
+                    `<i class="${iconClass} text-5xl text-slate-500 group-hover:text-blue-500 transition"></i>`;
 
                 card.innerHTML = `
-                    ${deleteBtn}
+                    ${adminControls}
                     <div class="h-32 bg-slate-900/50 flex items-center justify-center relative overflow-hidden">
                         <div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition"></div>
-                        <i class="${iconClass} text-5xl text-slate-500 group-hover:text-blue-500 transition"></i>
+                        ${logoHtml}
                         <div class="absolute bottom-2 right-2 bg-blue-900/80 px-2 py-0.5 rounded text-[10px] text-blue-200 font-mono border border-blue-800">LIVE</div>
                     </div>
                     <div class="p-4 flex justify-between items-start">
-                        <div class="overflow-hidden">
-                            <h3 class="font-bold text-slate-200 text-sm leading-snug mb-1 truncate w-full" title="${channel.name}">${channel.name}</h3>
-                            <span class="text-[10px] text-slate-400 bg-slate-700 px-2 py-0.5 rounded-full truncate max-w-full inline-block">${channel.category}</span>
+                        <div class="overflow-hidden w-full">
+                            <h3 class="font-bold text-slate-200 text-sm leading-snug mb-1 truncate" title="${channel.name}">${channel.name}</h3>
+                            <div class="flex justify-between items-center">
+                                <span class="text-[10px] text-slate-400 bg-slate-700 px-2 py-0.5 rounded-full truncate max-w-[80px]">${channel.category}</span>
+                                <button class="fav-btn text-slate-500 hover:text-red-500 transition ${isFav ? 'text-red-500' : ''}" onclick="toggleFavorite('${channel.id}', this)">
+                                    <i class="${isFav ? 'fas' : 'far'} fa-heart text-lg"></i>
+                                </button>
+                            </div>
                         </div>
-                        <button class="fav-btn flex-shrink-0 mr-2 text-slate-500 hover:text-red-500 transition ${isFav ? 'text-red-500' : ''}" onclick="toggleFavorite('${channel.id}', this)">
-                            <i class="${isFav ? 'fas' : 'far'} fa-heart text-lg"></i>
-                        </button>
                     </div>
                 `;
                 container.appendChild(card);
@@ -479,8 +682,12 @@
 
         window.filterCategory = function(cat) {
             if(!window.allChannels) return;
-            document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('bg-blue-600', 'text-white'));
-            event.target.classList.add('bg-blue-600', 'text-white');
+            document.querySelectorAll('.category-btn').forEach(b => {
+                b.classList.remove('bg-yellow-600', 'text-white');
+                b.classList.add('bg-slate-700', 'text-slate-300');
+            });
+            event.target.classList.remove('bg-slate-700', 'text-slate-300');
+            event.target.classList.add('bg-yellow-600', 'text-white');
             if(cat === 'all') renderChannelsGlobal(window.allChannels);
             else renderChannelsGlobal(window.allChannels.filter(ch => ch.category.toLowerCase().includes(cat) || ch.name.toLowerCase().includes(cat)));
         }
@@ -498,18 +705,15 @@
             const loader = document.getElementById('videoLoader');
             const errorLayer = document.getElementById('errorLayer');
             
-            // إعادة ضبط
             loader.classList.remove('hidden');
             errorLayer.classList.add('hidden');
             if(hlsInstance) hlsInstance.destroy();
 
-            // التعامل مع Iframe
             if (channel.type === 'iframe' || channel.url.trim().startsWith('<iframe') || channel.url.includes('embed')) {
                 videoElement.classList.add('hidden');
                 embedContainer.classList.remove('hidden');
                 loader.classList.add('hidden');
                 
-                // إذا كان رابط فقط ولكن النوع iframe
                 if (!channel.url.trim().startsWith('<iframe')) {
                     embedContainer.innerHTML = `<iframe src="${channel.url}" class="w-full h-full border-0" allowfullscreen allow="autoplay; encrypted-media"></iframe>`;
                 } else {
@@ -519,7 +723,6 @@
                 return;
             }
 
-            // التعامل مع Stream عادي
             videoElement.classList.remove('hidden');
             embedContainer.classList.add('hidden');
             embedContainer.innerHTML = '';
@@ -550,10 +753,6 @@
         }
 
         window.retryPlayback = function(proxy) { if(currentPlayingId) playChannel(currentPlayingId, proxy); }
-
-        window.switchToEmbedPlayer = function() {
-            // ... (نفس منطق embed السابق إذا لزم الأمر للطوارئ)
-        }
 
         window.showPage = function(page) {
             ['homePage', 'playerPage', 'favoritesPage'].forEach(id => document.getElementById(id).classList.add('hidden'));
