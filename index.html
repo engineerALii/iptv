@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سبورت ستريم | منصة IPTV الرياضية</title>
+    <!-- السماح بالمحتوى المختلط كحل أخير -->
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+    
+    <!-- مكتبة Tailwind CSS للتصميم -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- مكتبة الأيقونات FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- مكتبة Hls.js لتشغيل البثوث المباشرة -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.0/dist/hls.min.js"></script>
+
+    <style>
+        /* تخصيصات إضافية */
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap');
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #0f172a; /* لون خلفية داكن جداً */
+            color: #e2e8f0;
+        }
+
+        /* شريط التمرير المخصص */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3b82f6; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #2563eb; 
+        }
+
+        /* تأثيرات البطاقات */
+        .channel-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .channel-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4);
+        }
+
+        /* لودر التحميل */
+        .loader {
+            border: 4px solid #1e293b;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* إخفاء المشغل الافتراضي عند عدم الاستخدام */
+        .hidden-player {
+            display: none;
+        }
+
+        /* تأثير النبض لزر البث المباشر */
+        .live-indicator {
+            animation: pulse-red 2s infinite;
+        }
+        @keyframes pulse-red {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-900 min-h-screen flex flex-col">
+
+    <!-- رسالة قانونية -->
+    <div class="bg-blue-900/80 text-blue-100 text-xs text-center p-1 border-b border-blue-700">
+        <i class="fas fa-info-circle ml-1"></i>
+        ملاحظة: إذا واجهت مشاكل في التشغيل، جرب استخدام متصفح يدعم HTTP أو تفعيل "Allow Insecure Content" في إعدادات الموقع.
+    </div>
+
+    <!-- القائمة العلوية -->
+    <nav class="bg-slate-800/90 backdrop-blur-md sticky top-0 z-50 border-b border-slate-700 shadow-lg">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="showPage('home')">
+                <div class="w-10 h-10 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                    <i class="fas fa-play"></i>
+                </div>
+                <h1 class="text-2xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300 hidden sm:block">
+                    سبورت <span class="text-white">ستريم</span>
+                </h1>
+            </div>
+
+            <!-- البحث -->
+            <div class="relative w-full max-w-md mx-4 hidden md:block">
+                <input type="text" id="searchInput" oninput="filterChannels()" placeholder="ابحث عن قناة أو رياضة..." 
+                       class="w-full bg-slate-700/50 text-white border border-slate-600 rounded-full py-2 px-10 focus:outline-none focus:border-blue-500 focus:bg-slate-700 transition">
+                <i class="fas fa-search absolute right-3 top-3 text-slate-400"></i>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <button onclick="showPage('import')" class="text-blue-400 hover:text-white transition tooltip animate-pulse" title="إدارة السيرفرات">
+                    <i class="fas fa-server text-xl"></i>
+                </button>
+                <button onclick="showPage('schedule')" class="text-slate-300 hover:text-white transition" title="جدول المباريات">
+                    <i class="fas fa-calendar-alt text-xl"></i>
+                </button>
+                <button onclick="showPage('favorites')" class="text-slate-300 hover:text-red-500 transition relative" title="المفضلة">
+                    <i class="fas fa-heart text-xl"></i>
+                    <span id="favCount" class="absolute -top-2 -left-2 bg-red-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center hidden">0</span>
+                </button>
+            </div>
+        </div>
+        <!-- بحث للجوال -->
+        <div class="md:hidden px-4 py-2 border-t border-slate-700">
+            <input type="text" id="searchInputMobile" oninput="filterChannels()" placeholder="بحث..." 
+                   class="w-full bg-slate-700 text-white text-sm rounded-lg py-2 px-3 focus:outline-none">
+        </div>
+    </nav>
+
+    <!-- المحتوى الرئيسي -->
+    <main id="mainContent" class="flex-grow container mx-auto px-4 py-6">
+        
+        <!-- صفحة الرئيسية -->
+        <div id="homePage">
+            <!-- الفلاتر / التصنيفات -->
+            <div class="flex flex-wrap gap-2 mb-8 justify-center overflow-x-auto pb-2">
+                <button onclick="filterCategory('all')" class="category-btn active px-6 py-2 rounded-full bg-blue-600 text-white font-bold shadow-lg transition hover:bg-blue-700">الكل</button>
+                <button onclick="filterCategory('football')" class="category-btn px-6 py-2 rounded-full bg-slate-700 text-slate-300 font-semibold hover:bg-slate-600 transition border border-slate-600">
+                    <i class="fas fa-futbol ml-2"></i>كرة قدم
+                </button>
+                <button onclick="filterCategory('BEIN')" class="category-btn px-6 py-2 rounded-full bg-purple-900/50 text-purple-300 font-semibold hover:bg-purple-800 transition border border-purple-700">
+                    BeIN
+                </button>
+                <button onclick="filterCategory('SSC')" class="category-btn px-6 py-2 rounded-full bg-orange-900/50 text-orange-300 font-semibold hover:bg-orange-800 transition border border-orange-700">
+                    SSC
+                </button>
+                <button onclick="filterCategory('imported')" class="category-btn px-6 py-2 rounded-full bg-green-900/50 text-green-400 font-semibold hover:bg-green-900 transition border border-green-800">
+                    <i class="fas fa-server ml-2"></i>سيرفرات
+                </button>
+            </div>
+
+            <div id="loadingChannels" class="hidden text-center py-10">
+                <div class="loader mx-auto mb-4"></div>
+                <p class="text-slate-400">جاري تحميل القنوات من السيرفر...</p>
+                <p class="text-xs text-slate-500 mt-2">قد تستغرق العملية دقيقة إذا كانت القائمة ضخمة</p>
+            </div>
+
+            <!-- شبكة القنوات -->
+            <div id="channelsGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                <!-- سيتم توليد القنوات هنا بواسطة JavaScript -->
+            </div>
+            
+            <div id="noResults" class="hidden text-center py-20">
+                <div class="bg-slate-800 p-8 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-satellite-dish text-4xl text-slate-600"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-300 mb-2">لا توجد قنوات حالياً</h3>
+                <p class="text-slate-500 mb-6">قم بالذهاب إلى صفحة السيرفرات واضغط "اتصال" لتحميل القائمة.</p>
+                <button onclick="showPage('import')" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full transition">
+                    إدارة السيرفرات
+                </button>
+            </div>
+        </div>
+
+        <!-- صفحة المشغل -->
+        <div id="playerPage" class="hidden flex flex-col lg:flex-row gap-6">
+            <!-- قسم الفيديو -->
+            <div class="lg:w-3/4 w-full">
+                <div class="relative aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-slate-700 group">
+                    
+                    <!-- العنصر الفعلي للفيديو -->
+                    <video id="mainVideo" class="w-full h-full object-contain" controls crossorigin playsinline></video>
+                    <div id="iframeContainer" class="w-full h-full hidden"></div>
+                    
+                    <!-- لودر الفيديو -->
+                    <div id="videoLoader" class="absolute inset-0 flex flex-col items-center justify-center bg-black z-10 hidden">
+                        <div class="loader mb-4"></div>
+                        <p class="text-sm text-slate-400 animate-pulse">جاري الاتصال بالسيرفر...</p>
+                        <p id="proxyMsg" class="text-xs text-yellow-500 mt-2 hidden">يتم الاتصال عبر وسيط (Proxy)...</p>
+                    </div>
+
+                    <!-- طبقة الخطأ -->
+                    <div id="errorLayer" class="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20 hidden text-center p-4">
+                        <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-2"></i>
+                        <p class="text-white font-bold mb-1">تعذر تشغيل الفيديو</p>
+                        <p class="text-xs text-slate-400 mb-4">قد يكون السيرفر بطيئاً جداً أو يحظر الاتصال الخارجي.</p>
+                        <button onclick="retryPlayback()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm transition">
+                            إعادة المحاولة (Proxy)
+                        </button>
+                    </div>
+
+                    <!-- شعار القناة فوق الفيديو -->
+                    <div class="absolute top-4 right-4 bg-black/50 backdrop-blur px-3 py-1 rounded text-white text-sm font-bold flex items-center pointer-events-none">
+                        <span class="w-2 h-2 bg-red-600 rounded-full ml-2 live-indicator"></span>
+                        مباشر
+                    </div>
+                </div>
+
+                <!-- معلومات القناة أسفل الفيديو -->
+                <div class="mt-4 bg-slate-800 p-6 rounded-xl border border-slate-700">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h2 id="playerChannelName" class="text-2xl font-bold text-white mb-1">اسم القناة</h2>
+                            <p id="playerCategory" class="text-blue-400 text-sm font-medium mb-3">التصنيف</p>
+                        </div>
+                        <button id="playerFavBtn" onclick="toggleFavoriteCurrent()" class="bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-full transition shadow-lg">
+                            <i class="far fa-heart"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- قائمة جانبية للقنوات المقترحة -->
+            <div class="lg:w-1/4 w-full">
+                <h3 class="font-bold text-lg mb-4 text-slate-300 border-r-4 border-blue-500 pr-3">قنوات مشابهة</h3>
+                <div id="relatedChannels" class="flex flex-col gap-3 max-h-[600px] overflow-y-auto pr-2">
+                    <!-- قائمة جانبية -->
+                </div>
+            </div>
+        </div>
+
+        <!-- صفحة الاستيراد (السيرفرات) -->
+        <div id="importPage" class="hidden max-w-4xl mx-auto">
+            
+            <h2 class="text-2xl font-bold text-white mb-6 border-r-4 border-green-500 pr-4">السيرفرات المحفوظة</h2>
+            
+            <!-- قائمة السيرفرات الجاهزة -->
+            <div id="serversList" class="grid gap-4 mb-8">
+                <!-- سيتم ملؤها بواسطة JS -->
+            </div>
+
+            <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-2xl mt-8">
+                <h3 class="text-xl font-bold text-white mb-4">إضافة يدوية (M3U)</h3>
+                <div class="space-y-4">
+                    <textarea id="m3uInput" rows="4" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-sm text-slate-200 focus:border-green-500 outline-none font-mono" placeholder="الصق محتوى ملف M3U هنا..."></textarea>
+                    <div class="flex gap-3">
+                        <button onclick="parseAndLoadM3U()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition">
+                            <i class="fas fa-check-circle ml-2"></i> معالجة النصوص
+                        </button>
+                        <button onclick="clearImportedChannels()" class="bg-red-900/50 hover:bg-red-900 text-red-200 px-6 rounded-lg transition">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- صفحة الجدول (UI فقط) -->
+        <div id="schedulePage" class="hidden">
+            <h2 class="text-2xl font-bold mb-6 border-r-4 border-blue-500 pr-4">مباريات اليوم</h2>
+            <div class="text-center py-10 bg-slate-800 rounded-xl">
+                <i class="fas fa-tools text-4xl text-slate-600 mb-4"></i>
+                <p class="text-slate-400">هذه الصفحة للتصميم فقط حالياً</p>
+            </div>
+        </div>
+
+        <!-- صفحة المفضلة -->
+        <div id="favoritesPage" class="hidden">
+            <h2 class="text-2xl font-bold mb-6 text-red-400 border-r-4 border-red-500 pr-4">القنوات المفضلة</h2>
+            <div id="favGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+            <div id="noFavs" class="hidden text-center py-20">
+                <i class="far fa-heart text-6xl text-slate-700 mb-4"></i>
+                <p class="text-slate-400">لا توجد قنوات في المفضلة.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- الفوتر -->
+    <footer class="bg-slate-900 border-t border-slate-800 py-6 mt-8">
+        <div class="container mx-auto px-4 text-center text-slate-600 text-xs">
+            <p>Sport Stream Pro Player &copy; 2024</p>
+        </div>
+    </footer>
+
+    <!-- سكريبت التطبيق -->
+    <script>
+        // --- بيانات المستخدم (السيرفرات) ---
+        const userServers = [
+            { name: "NewTera Server", url: "http://n1.newtera.store:2052", user: "70640456", pass: "9406262150" },
+            { name: "TigerTV Club", url: "http://tigertv.club:25461", user: "02000838511227", pass: "uGsHM8UCtJCGfeM" },
+            { name: "Server 31.57", url: "http://31.57.111.12:80", user: "Aldtv24_600256", pass: "I3ATMC28" },
+            { name: "Snap-TR", url: "http://snap-tr.org:80", user: "MahmodHa", pass: "HamidEgy" },
+            { name: "NxSmrt4", url: "http://nxsmrt4.xyz:80", user: "mehmetkaya1311", pass: "57TsDVbKK7" }
+        ];
+
+        // --- حالة التطبيق ---
+        let allChannels = [];
+        let favorites = JSON.parse(localStorage.getItem('iptv_favorites')) || [];
+        let currentPlayingId = null;
+        let hlsInstance = null;
+        let useProxyForPlayback = false; // تفعيل البروكسي عند الفشل
+
+        // --- التهيئة ---
+        window.onload = function() {
+            renderServersList();
+            
+            // التحقق مما إذا كان هناك قنوات مخزنة مسبقاً (اختياري)
+            const savedData = localStorage.getItem('iptv_cached_channels');
+            if(savedData) {
+                try {
+                    allChannels = JSON.parse(savedData);
+                    if(allChannels.length > 0) renderChannels(allChannels);
+                    else showPage('import');
+                } catch(e) { showPage('import'); }
+            } else {
+                showPage('import'); // توجيه المستخدم للاستيراد أول مرة
+            }
+            updateFavCount();
+        };
+
+        // --- عرض قائمة السيرفرات ---
+        function renderServersList() {
+            const container = document.getElementById('serversList');
+            container.innerHTML = '';
+            
+            userServers.forEach((srv, index) => {
+                const div = document.createElement('div');
+                div.className = "bg-slate-800 p-4 rounded-xl border border-slate-700 flex flex-col md:flex-row justify-between items-center gap-4 hover:border-blue-500 transition shadow-lg";
+                
+                // تعديل: استخدام m3u8 بدلاً من ts للتوافق مع المشغل
+                const m3uUrl = `${srv.url}/get.php?username=${srv.user}&password=${srv.pass}&type=m3u_plus&output=m3u8`;
+                
+                div.innerHTML = `
+                    <div class="flex items-center gap-4 w-full md:w-auto">
+                        <div class="w-12 h-12 bg-blue-900 rounded-full flex items-center justify-center text-blue-300 font-bold text-xl border border-blue-700">
+                            ${index + 1}
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white text-lg">${srv.name}</h4>
+                            <div class="text-xs text-slate-400 font-mono flex gap-2">
+                                <span class="bg-slate-900 px-2 py-0.5 rounded">User: ${srv.user}</span>
+                                <span class="bg-slate-900 px-2 py-0.5 rounded text-green-500">Active</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 w-full md:w-auto">
+                        <button onclick="connectToServer('${m3uUrl}', '${srv.name}')" class="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold transition flex items-center justify-center gap-2">
+                            <i class="fas fa-satellite-dish"></i> اتصال وتحميل
+                        </button>
+                        <a href="${m3uUrl}" target="_blank" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2 rounded-lg transition" title="تنزيل الملف">
+                            <i class="fas fa-download"></i>
+                        </a>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // --- الاتصال بالسيرفر وسحب القنوات ---
+        async function connectToServer(url, serverName) {
+            document.getElementById('loadingChannels').classList.remove('hidden');
+            document.getElementById('noResults').classList.add('hidden');
+            showPage('home'); // العودة للرئيسية لإظهار اللودر
+            
+            // قائمة البروكسيات للمحاولة بالترتيب لزيادة الموثوقية
+            const proxies = [
+                (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+                (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
+            ];
+
+            let success = false;
+
+            for (const getProxyUrl of proxies) {
+                try {
+                    const proxyUrl = getProxyUrl(url);
+                    console.log(`Connecting via: ${proxyUrl}`);
+                    
+                    const response = await fetch(proxyUrl);
+                    if (!response.ok) {
+                        console.warn(`Proxy ${proxyUrl} returned ${response.status}`);
+                        continue; // جرب البروكسي التالي
+                    }
+                    
+                    const text = await response.text();
+                    
+                    // التحقق من صلاحية المحتوى
+                    if(text && (text.includes('#EXTM3U') || text.length > 100)) {
+                        processM3UData(text, serverName);
+                        success = true;
+                        break; // نجاح، اخرج من الحلقة
+                    }
+                } catch (e) {
+                    console.warn("Proxy attempt failed", e);
+                }
+            }
+            
+            if (!success) {
+                document.getElementById('loadingChannels').classList.add('hidden');
+                
+                const userChoice = confirm(`فشل الاتصال الآلي بالسيرفر (${serverName}).\n\nغالباً بسبب قيود المتصفح أو أن السيرفر بطيء الاستجابة.\n\nهل تريد تجربة التحميل اليدوي؟\n(سنقوم بفتح رابط التحميل، ثم انسخ المحتوى وألصقه في البرنامج)`);
+                
+                if(userChoice) {
+                    window.open(url, '_blank');
+                    showPage('import');
+                } else {
+                    showPage('import');
+                }
+            }
+        }
+
+        // --- معالجة النص M3U ---
+        function processM3UData(data, sourceName) {
+            if(!data.includes('#EXTM3U')) {
+                data = "#EXTM3U\n" + data;
+            }
+
+            const lines = data.split('\n');
+            const newChannels = [];
+            let currentInfo = {};
+
+            let limit = 5000;
+            let count = 0;
+
+            for (let i = 0; i < lines.length; i++) {
+                if(count >= limit) break;
+                
+                let line = lines[i].trim();
+                if (line.startsWith('#EXTINF:')) {
+                    const logoMatch = line.match(/tvg-logo="([^"]*)"/);
+                    const groupMatch = line.match(/group-title="([^"]*)"/);
+                    const nameParts = line.split(',');
+                    const rawName = nameParts[nameParts.length - 1].trim();
+                    
+                    let cat = groupMatch ? groupMatch[1] : 'عام';
+                    if(!cat) cat = "General";
+                    if(rawName.toUpperCase().includes('SPORT') || cat.toUpperCase().includes('SPORT')) cat = 'football';
+                    
+                    currentInfo = {
+                        name: rawName,
+                        logo: logoMatch ? logoMatch[1] : '',
+                        category: cat,
+                        source: sourceName
+                    };
+                } else if (line.length > 0 && !line.startsWith('#')) {
+                    if (currentInfo.name) {
+                        newChannels.push({
+                            id: 'ch-' + count,
+                            url: line,
+                            type: line.includes('.m3u8') ? 'stream' : 'mp4',
+                            ...currentInfo
+                        });
+                        currentInfo = {};
+                        count++;
+                    }
+                }
+            }
+
+            if(newChannels.length === 0) {
+                alert("لم يتم العثور على قنوات في الملف. تأكد من أن السيرفر نشط.");
+                document.getElementById('loadingChannels').classList.add('hidden');
+                showPage('import');
+                return;
+            }
+
+            allChannels = newChannels;
+            try {
+                localStorage.setItem('iptv_cached_channels', JSON.stringify(allChannels.slice(0, 1000))); 
+            } catch(e) {}
+            
+            document.getElementById('loadingChannels').classList.add('hidden');
+            renderChannels(allChannels);
+            alert(`تم تحميل ${newChannels.length} قناة بنجاح من ${sourceName}`);
+        }
+
+        // --- معالجة M3U اليدوية ---
+        function parseAndLoadM3U() {
+            const input = document.getElementById('m3uInput').value;
+            if (!input.includes('#EXTM3U') && !input.includes('#EXTINF')) {
+                alert('صيغة الملف غير صحيحة أو فارغة.');
+                return;
+            }
+            processM3UData(input, "ملف يدوي");
+            showPage('home');
+        }
+
+        // --- وظائف العرض (Rendering) ---
+        function renderChannels(channels, containerId = 'channelsGrid') {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            if (channels.length === 0) {
+                document.getElementById('noResults').classList.remove('hidden');
+                return;
+            } else {
+                document.getElementById('noResults').classList.add('hidden');
+            }
+
+            const displayChannels = channels.length > 100 && containerId === 'channelsGrid' ? channels.slice(0, 100) : channels;
+
+            displayChannels.forEach(channel => {
+                const isFav = favorites.includes(channel.id);
+                let iconClass = 'fas fa-tv';
+                if(channel.name.includes('BEIN')) iconClass = 'fas fa-futbol';
+                
+                const card = document.createElement('div');
+                card.className = 'channel-card relative bg-slate-800 rounded-xl overflow-hidden cursor-pointer border border-slate-700 group';
+                card.onclick = (e) => {
+                    if(e.target.closest('.fav-btn')) return;
+                    playChannel(channel.id);
+                };
+
+                const logoHtml = channel.logo && channel.logo.length > 10
+                    ? `<img src="${channel.logo}" loading="lazy" class="h-16 w-16 object-contain drop-shadow-lg" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"> <i class="${iconClass} text-4xl text-white/50 hidden"></i>`
+                    : `<i class="${iconClass} text-5xl text-slate-500 group-hover:text-blue-500 transition"></i>`;
+
+                card.innerHTML = `
+                    <div class="h-32 bg-slate-900/50 flex items-center justify-center relative overflow-hidden">
+                        <div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition"></div>
+                        ${logoHtml}
+                        <div class="absolute bottom-2 right-2 bg-blue-900/80 px-2 py-0.5 rounded text-[10px] text-blue-200 font-mono border border-blue-800">IPTV</div>
+                    </div>
+                    <div class="p-4 flex justify-between items-start">
+                        <div class="overflow-hidden">
+                            <h3 class="font-bold text-slate-200 text-sm leading-snug mb-1 truncate w-full" title="${channel.name}">${channel.name}</h3>
+                            <span class="text-[10px] text-slate-400 bg-slate-700 px-2 py-0.5 rounded-full truncate max-w-full inline-block">${channel.category || 'Unknown'}</span>
+                        </div>
+                        <button class="fav-btn flex-shrink-0 mr-2 text-slate-500 hover:text-red-500 transition ${isFav ? 'text-red-500' : ''}" onclick="toggleFavorite('${channel.id}', this)">
+                            <i class="${isFav ? 'fas' : 'far'} fa-heart text-lg"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+            
+            if(channels.length > 100 && containerId === 'channelsGrid') {
+                const moreDiv = document.createElement('div');
+                moreDiv.className = "col-span-full text-center py-4 text-slate-500 text-xs";
+                moreDiv.innerText = `تم عرض 100 قناة من أصل ${channels.length}. استخدم البحث للوصول للبقية.`;
+                container.appendChild(moreDiv);
+            }
+        }
+
+        // --- نظام التصفح ---
+        function showPage(pageName) {
+            if(pageName !== 'player' && currentPlayingId) stopPlayer();
+            ['homePage', 'playerPage', 'importPage', 'schedulePage', 'favoritesPage'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            if(pageName === 'home') document.getElementById('homePage').classList.remove('hidden');
+            else if (pageName === 'favorites') {
+                document.getElementById('favoritesPage').classList.remove('hidden');
+                loadFavoritesPage();
+            } else if (pageName === 'schedule') document.getElementById('schedulePage').classList.remove('hidden');
+            else if (pageName === 'import') document.getElementById('importPage').classList.remove('hidden');
+            else if (pageName === 'player') document.getElementById('playerPage').classList.remove('hidden');
+        }
+
+        // --- فلترة التصنيفات ---
+        function filterCategory(category) {
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white');
+                btn.classList.add('bg-slate-700', 'text-slate-300');
+            });
+            if(event && event.currentTarget) {
+                event.currentTarget.classList.remove('bg-slate-700', 'text-slate-300');
+                event.currentTarget.classList.add('bg-blue-600', 'text-white');
+            }
+
+            if (category === 'all') {
+                renderChannels(allChannels);
+            } else {
+                const filtered = allChannels.filter(ch => 
+                    (ch.category && ch.category.toUpperCase().includes(category.toUpperCase())) ||
+                    (ch.name && ch.name.toUpperCase().includes(category.toUpperCase()))
+                );
+                renderChannels(filtered);
+            }
+        }
+
+        // --- نظام البحث ---
+        function filterChannels() {
+            const query = (document.getElementById('searchInput').value || document.getElementById('searchInputMobile').value).toLowerCase();
+            const filtered = allChannels.filter(ch => 
+                ch.name.toLowerCase().includes(query) || 
+                (ch.category && ch.category.toLowerCase().includes(query))
+            );
+            renderChannels(filtered);
+        }
+
+        // --- المشغل (Player Logic) - معالجة الأخطاء المحسنة ---
+        function playChannel(id, forceProxy = false) {
+            const channel = allChannels.find(ch => ch.id === id);
+            if (!channel) return;
+
+            currentPlayingId = id;
+            if(forceProxy) useProxyForPlayback = true;
+            else useProxyForPlayback = false;
+
+            showPage('player');
+            document.getElementById('playerChannelName').innerText = channel.name;
+            document.getElementById('playerCategory').innerText = channel.category;
+            
+            const videoElement = document.getElementById('mainVideo');
+            const loader = document.getElementById('videoLoader');
+            const errorLayer = document.getElementById('errorLayer');
+            const proxyMsg = document.getElementById('proxyMsg');
+
+            stopPlayer(false); 
+            loader.classList.remove('hidden');
+            errorLayer.classList.add('hidden');
+            videoElement.classList.remove('hidden');
+            proxyMsg.classList.add('hidden');
+
+            let streamUrl = channel.url;
+
+            // كشف المحتوى المختلط وتفعيل البروكسي تلقائياً
+            if (window.location.protocol === 'https:' && streamUrl.startsWith('http:') && !streamUrl.includes('proxy')) {
+                console.warn("Mixed Content Detected. Switching to Proxy mode.");
+                useProxyForPlayback = true;
+            }
+
+            if (useProxyForPlayback) {
+                // استخدام بروكسي CodeTabs لتمرير الفيديو
+                streamUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(streamUrl)}`;
+                proxyMsg.classList.remove('hidden');
+            }
+
+            const safePlay = () => {
+                const playPromise = videoElement.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.error("Playback interrupted:", error);
+                    });
+                }
+            };
+
+            if (Hls.isSupported()) {
+                const hlsConfig = {
+                    // إعدادات لتقليل الأخطاء في الشبكات البطيئة أو البروكسي
+                    manifestLoadingTimeOut: 20000,
+                    manifestLoadingMaxRetry: 3,
+                    levelLoadingTimeOut: 20000,
+                    fragLoadingTimeOut: 20000,
+                };
+
+                hlsInstance = new Hls(hlsConfig);
+                hlsInstance.loadSource(streamUrl);
+                hlsInstance.attachMedia(videoElement);
+                
+                hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() {
+                    safePlay();
+                    loader.classList.add('hidden');
+                });
+                
+                hlsInstance.on(Hls.Events.ERROR, function (event, data) {
+                    if (data.fatal) {
+                        switch (data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                console.warn("Network error encountered, trying to recover...");
+                                hlsInstance.startLoad();
+                                // إذا فشل بعد المحاولة، نظهر الخطأ
+                                setTimeout(() => {
+                                    if(loader.classList.contains('hidden') === false) {
+                                        showPlaybackError();
+                                    }
+                                }, 5000);
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                hlsInstance.recoverMediaError();
+                                break;
+                            default:
+                                hlsInstance.destroy();
+                                showPlaybackError();
+                                break;
+                        }
+                    }
+                });
+            } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                // دعم Safari
+                videoElement.src = streamUrl;
+                safePlay();
+            } else {
+                showPlaybackError();
+            }
+
+            videoElement.onerror = () => {
+                showPlaybackError();
+            };
+            
+            videoElement.onplaying = () => {
+                loader.classList.add('hidden');
+                errorLayer.classList.add('hidden');
+            };
+
+            loadRelatedChannels(channel.category);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showPlaybackError() {
+            document.getElementById('videoLoader')?.classList.add('hidden');
+            document.getElementById('errorLayer').classList.remove('hidden');
+        }
+
+        function retryPlayback() {
+            if(currentPlayingId) {
+                // عند إعادة المحاولة، نجبر استخدام البروكسي
+                playChannel(currentPlayingId, true);
+            }
+        }
+
+        function stopPlayer(hidePage = true) {
+            const videoElement = document.getElementById('mainVideo');
+            videoElement.pause();
+            videoElement.removeAttribute('src'); 
+            videoElement.load(); 
+            
+            if (hlsInstance) {
+                hlsInstance.destroy();
+                hlsInstance = null;
+            }
+            if (hidePage) currentPlayingId = null;
+        }
+
+        function loadRelatedChannels(category) {
+            const container = document.getElementById('relatedChannels');
+            container.innerHTML = '';
+            const related = allChannels.filter(ch => ch.category === category && ch.id !== currentPlayingId).slice(0, 5);
+            related.forEach(ch => {
+                const item = document.createElement('div');
+                item.className = 'flex items-center gap-3 p-2 hover:bg-slate-700/50 rounded cursor-pointer transition';
+                item.onclick = () => playChannel(ch.id);
+                item.innerHTML = `
+                    <div class="w-10 h-10 bg-slate-800 rounded flex items-center justify-center text-white"><i class="fas fa-play text-xs"></i></div>
+                    <div><h4 class="font-bold text-sm text-slate-200 truncate w-32">${ch.name}</h4></div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // --- المفضلة وغيرها ---
+        function toggleFavorite(id, btn) {
+            if (event) event.stopPropagation();
+            const index = favorites.indexOf(id);
+            if (index === -1) {
+                favorites.push(id);
+                if(btn) btn.classList.add('text-red-500');
+            } else {
+                favorites.splice(index, 1);
+                if(btn) btn.classList.remove('text-red-500');
+            }
+            localStorage.setItem('iptv_favorites', JSON.stringify(favorites));
+            updateFavCount();
+            if (!document.getElementById('favoritesPage').classList.contains('hidden')) loadFavoritesPage();
+        }
+
+        function toggleFavoriteCurrent() {
+            if(currentPlayingId) toggleFavorite(currentPlayingId, document.getElementById('playerFavBtn'));
+        }
+
+        function updateFavCount() {
+            const count = favorites.length;
+            const badge = document.getElementById('favCount');
+            badge.innerText = count;
+            badge.classList.toggle('hidden', count === 0);
+        }
+
+        function loadFavoritesPage() {
+            const favChannels = allChannels.filter(ch => favorites.includes(ch.id));
+            renderChannels(favChannels, 'favGrid');
+            document.getElementById('noFavs').classList.toggle('hidden', favChannels.length > 0);
+        }
+        
+        function clearImportedChannels() {
+            if(confirm("هل أنت متأكد من مسح جميع القنوات؟")) {
+                allChannels = [];
+                localStorage.removeItem('iptv_cached_channels');
+                renderChannels([]);
+                alert("تم الحذف");
+            }
+        }
+    </script>
+</body>
+</html>
