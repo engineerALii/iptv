@@ -76,6 +76,13 @@
             outline: none;
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
         }
+        
+        /* إصلاح مشكلة الفيديو في الجوال */
+        video {
+            background-color: #000;
+            width: 100%;
+            height: 100%;
+        }
     </style>
 </head>
 <body class="bg-slate-900 min-h-screen flex flex-col">
@@ -709,6 +716,13 @@
             errorLayer.classList.add('hidden');
             if(hlsInstance) hlsInstance.destroy();
 
+            // إعادة ضبط الفيديو والتأكد من الصوت
+            videoElement.pause();
+            videoElement.src = '';
+            videoElement.load();
+            videoElement.muted = false; // التأكد من أن الصوت يعمل
+
+            // Iframe Handling
             if (channel.type === 'iframe' || channel.url.trim().startsWith('<iframe') || channel.url.includes('embed')) {
                 videoElement.classList.add('hidden');
                 embedContainer.classList.remove('hidden');
@@ -723,6 +737,7 @@
                 return;
             }
 
+            // Stream Handling
             videoElement.classList.remove('hidden');
             embedContainer.classList.add('hidden');
             embedContainer.innerHTML = '';
@@ -730,12 +745,25 @@
             let url = channel.url;
             if(useProxy) url = `https://corsproxy.io/?${encodeURIComponent(url)}`;
 
-            if (Hls.isSupported()) {
+            // الحل السحري لمشكلة "صوت بدون صورة": إخفاء اللودر عند تقدم الوقت
+            videoElement.ontimeupdate = () => {
+                if(videoElement.currentTime > 0.1 && !videoElement.paused) {
+                    loader.classList.add('hidden');
+                    errorLayer.classList.add('hidden');
+                }
+            };
+
+            // أولوية التشغيل الأصلي للجوال (Android/iOS)
+            if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                videoElement.src = url;
+                videoElement.play().catch(e => console.log(e));
+            } 
+            else if (Hls.isSupported()) {
                 hlsInstance = new Hls();
                 hlsInstance.loadSource(url);
                 hlsInstance.attachMedia(videoElement);
                 hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-                    videoElement.play();
+                    videoElement.play().catch(e => console.log(e));
                     loader.classList.add('hidden');
                 });
                 hlsInstance.on(Hls.Events.ERROR, (event, data) => {
@@ -744,9 +772,6 @@
                         loader.classList.add('hidden');
                     }
                 });
-            } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
-                videoElement.src = url;
-                videoElement.play();
             }
             
             loadRelatedChannels(channel.category);
